@@ -152,10 +152,15 @@ def runPylint(projectDirectory):
 		# write the index link
 		lintIndex += '<a href="'+filePath+'.html">'+filePath+'</a><br />'
 	lintIndex += "<hr />"
+	# create file string
+	pylintTempString=''
+	for filePath in sourceFiles:
+		pylintTempString += pathJoin(relpath(projectDirectory),filePath)+' '
 	# add a pylint file for the project directory including all lint stuff inside
 	lintIndex += runCmd('pylint --include-naming-hint="y" -f html\
-			--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
-			pathJoin(relpath(projectDirectory),'*'))
+		--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
+		pylintTempString)
+		#pathJoin(relpath(projectDirectory),'*'))
 	# save the created index file
 	debug.add('save file at',pathJoin(projectDirectory,'report/lint/index.html'))
 	saveFile(pathJoin(projectDirectory,'report/lint/index.html'), lintIndex)
@@ -186,11 +191,11 @@ def runPylint(projectDirectory):
 		# build the content
 		# create a entry in the file
 		lintFile += "<h2 id='"+filePath+"'>"+filePath+"</h2>"
-		lintFile += "<a href='#index'>Return to Index</a>"
+		lintFile += "<a href='index.html'>Return to Index</a>"
 		# adding pylint output for the file to the report
 		lintFile += runCmd('pylint --include-naming-hint="y" -f html\
-				--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
-				filePath)
+			--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
+			filePath)
 		lintFile += "<hr />"
 		# write the lintFile
 		debug.add('save file at',pathJoin(projectDirectory,'report/lint/',(fileName+'.html')))
