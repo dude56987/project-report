@@ -17,6 +17,8 @@
 ########################################################################
 show:
 	echo 'Run "make install" as root to install program!'
+test: install
+	time project-report
 run:
 	python project-report.py
 install: build
@@ -36,6 +38,8 @@ build-deb:
 	mkdir -p debian/usr/share/project-report;
 	mkdir -p debian/usr/share/project-report/configs;
 	mkdir -p debian/usr/share/applications;
+	# copy libaries
+	cp -vrf lib/* debian/usr/share/project-report/
 	# copy over the configs
 	cp -vrf configs/* debian/usr/share/project-report/configs/
 	# copy over the files 
