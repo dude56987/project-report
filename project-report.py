@@ -142,7 +142,7 @@ def runPylint(projectDirectory):
 	lintIndex += "th{border-width:3px;border-style:solid;"
 	lintIndex += "color:white;background-color:black;}"
 	lintIndex += "</style><body>"
-	lintIndex += "<h1><a href='../'>Back</a></h1>"
+	lintIndex += "<h1><a href='../index.html'>Back</a></h1>"
 	lintIndex += "<hr /><h1 id='#index'>Index</h1>"
 	for filePath in sourceFiles:
 		debug.add('building link in index to',filePath)
@@ -190,7 +190,7 @@ def runPylint(projectDirectory):
 		lintFile += "<hr />"
 		# build the content
 		# create a entry in the file
-		lintFile += "<h2 id='"+filePath+"'>"+filePath+"</h2>"
+		lintFile += "<h2>"+relpath(filePath)+"</h2>"
 		lintFile += "<a href='index.html'>Return to Index</a>"
 		# adding pylint output for the file to the report
 		lintFile += runCmd('pylint --include-naming-hint="y" -f html\
