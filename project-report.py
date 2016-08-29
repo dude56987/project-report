@@ -308,13 +308,5 @@ def main(arguments):
 #######################################################################
 # Launch main
 #######################################################################
-## dependency checks for creating the report
-if not pathExists('/usr/bin/gitstats'):
-	runCmd('sudo apt-get install gitstats --assume-yes')
-if not pathExists('/usr/bin/gource'):
-	runCmd('sudo apt-get install gource --assume-yes')
-if not pathExists('/usr/bin/pylint'):
-	runCmd('sudo apt-get install pylint --assume-yes')
-#######################################################################
 if __name__ == '__main__':
 	main(sys.argv)
