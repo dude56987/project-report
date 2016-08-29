@@ -25,17 +25,15 @@ def loadFile(fileName):
 
 	:return string/bool
 	'''
-	try:
-		#print "Loading :",fileName
+	if os.path.exists(fileName):	
 		fileObject=open(fileName,'r')
-	except:
+	else:
 		print("Failed to load : "+fileName)
 		return False
 	fileText=''
 	lineCount = 0
 	for line in fileObject:
 		fileText += line
-		#sys.stdout.write('Loading line '+str(lineCount)+'...\r')
 		lineCount += 1
 	#print "Finished Loading :",fileName
 	fileObject.close()
