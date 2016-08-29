@@ -37,10 +37,12 @@ from os.path import isdir
 from os.path import exists as pathExists
 from os.path import join as pathJoin
 from cgi import escape as escapeHTML
+from markdown import markdown
 # add custom libaries path
 sys.path.append('/usr/share/project-report/')
 # custom libaries
 from files import saveFile
+from files import loadFile
 # setup the debugging object
 import masterdebug
 debug = masterdebug.init()
@@ -95,7 +97,7 @@ def findSources(directory, sourceExtension):
 	# this function is dumb and has no false return values
 	return sourcesArray
 #######################################################################
-def buildIndex():
+def buildIndex(projectDirectory):
 	'''
 	Builds the index page of the report website.
 	'''
@@ -109,15 +111,43 @@ def buildIndex():
 	# copy the logo into the report
 	runCmd("cp -v logo.png report/logo.png")
 	# create the index page to be saved to report/index.html
-	reportIndex  = "<html style='margin:auto;width:800px;text-align:center;'><body>"
-	reportIndex += "<a href='webstats/index.html'><h1>WebStats</h1></a>"
-	reportIndex += "<a href='log.html'><h1>Log</h1></a>"
-	reportIndex += "<a href='docs/'><h1>Docs</h1></a>"
-	reportIndex += "<a href='lint/index.html'><h1>Lint</h1></a>"
-	reportIndex += "<video src='video.mp4' poster='logo.png' width='800' controls>"
-	reportIndex += "<a href='video.mp4'><h1>Gource Video Rendering</h1></a>"
-	reportIndex += "</video>"
-	reportIndex += "</body></html>"
+	reportIndex  = "<html>\n"
+	reportIndex += "<head>\n"
+	if pathExists(pathJoin(projectDirectory,'README.md')):
+		reportIndex += '<title>\n'
+		reportIndex += loadFile(pathJoin(projectDirectory,'README.md')).split('===')[0]
+		reportIndex += '\n</title>\n'
+	if pathExists('/usr/share/project-report/configs/style.css'):
+		reportIndex += "<style>\n"
+		reportIndex += loadFile('/usr/share/project-report/configs/style.css')
+		reportIndex += "\n</style>\n"
+	reportIndex += "</head>\n"
+	reportIndex += "<body>\n"
+	if pathExists(pathJoin(projectDirectory,'README.md')):
+		# add the header for the project title
+		reportIndex += "<h1 style='text-align: center'>\n"
+		reportIndex += loadFile(pathJoin(projectDirectory,'README.md')).split('===')[0]
+		reportIndex += "</h1>\n"
+	# add the menu items
+	reportIndex += "<div id='menu'>\n"
+	reportIndex += "<a class='menuButton' href='webstats/index.html'>Stats</a>\n"
+	reportIndex += "<a class='menuButton' href='log.html'>Log</a>\n"
+	reportIndex += "<a class='menuButton' href='docs/'>Docs</a>\n"
+	reportIndex += "<a class='menuButton' href='lint/index.html'>Lint</a>\n"
+	reportIndex += "</div>\n"
+	# add video to webpage
+	reportIndex += "<video src='video.mp4' poster='logo.png' width='800' controls>\n"
+	reportIndex += "<a href='video.mp4'>Gource Video Rendering</a>\n"
+	reportIndex += "</video>\n"
+	# generate the markdown of the README.md file and insert it, if it exists
+	if pathExists(pathJoin(projectDirectory,'README.md')):
+		reportIndex += "<div id='markdownArea'>\n"
+		fileContent = loadFile(pathJoin(projectDirectory,'README.md'))
+		if fileContent != False:
+			fileContent=markdown(fileContent)
+			reportIndex += fileContent
+		reportIndex += "\n</div>\n"
+	reportIndex += "</body>\n</html>\n"
 	# write the file
 	saveFile('report/index.html', reportIndex)
 #######################################################################
@@ -294,7 +324,7 @@ def main(arguments):
 	# directory
 	if len(arguments)==0:
 		arguments.append(curdir)
-	buildIndex()
+	buildIndex(arguments[0])
 	runPylint(arguments[0])
 	runPydocs(arguments[0])
 	runGitLog()

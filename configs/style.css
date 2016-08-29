@@ -1,0 +1,37 @@
+body{
+	margin:auto;
+	width:800px;
+	background-color: white;
+	color: black;
+}
+.menuButton{
+	font-size: 20px;
+	text-align: center;
+	margin: 0px;
+	width: 192px;
+	float: left;
+	padding: 2px;
+	border-style: solid;
+	border-width: 2px;
+	border-color: black;
+	background-color: white;
+	color: black;
+	border-radius: 10px;
+	text-decoration: none;
+}
+.menuButton:hover{
+	background-color: black;
+	color: white;
+	border-radius: 7px;
+}
+code{
+	font-weight: bold;
+	width: 800px;
+	padding: 10px;
+	color: white;
+	background-color: black;
+}
+#markdownArea{
+	color: black;
+	background-color: white;
+}
