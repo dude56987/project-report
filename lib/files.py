@@ -57,14 +57,10 @@ def saveFile(fileName,contentToWrite):
 	filepath = os.sep.join(filepath)
 	# check if path exists
 	if os.path.exists(filepath):
-		try:
-			fileObject = open(fileName,'w')
-			fileObject.write(contentToWrite)
-			fileObject.close()
-			return True
-		except:
-			print('Failed to write file:'+fileName)
-			return False
+		fileObject = open(fileName,'w')
+		fileObject.write(contentToWrite)
+		fileObject.close()
+		return True
 	else:
 		print('Failed to write file, path:'+filepath+'does not exist!')
 		return False
