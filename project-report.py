@@ -32,7 +32,7 @@ from os import popen
 from os import listdir
 from os.path import realpath
 from os.path import relpath
-from os.path import isfile 
+from os.path import isfile
 from os.path import isdir
 from os.path import exists as pathExists
 from os.path import join as pathJoin
@@ -325,13 +325,19 @@ class main():
 		Generate the "git log" output formated into a webpage.
 		'''
 		# create the webpage for the git log output saved to report/log.html
-		logOutput  = "<html><body>"
+		logOutput  = "<html>"
+		if pathExists('/usr/share/project-report/configs/style.css'):
+			logOutput += "<head><style>\n"
+			logOutput += loadFile('/usr/share/project-report/configs/style.css')
+			logOutput += "\n</style></head>\n"
+		logOutput += "<body>"
 		logOutput += "<h1><a href='index.html'>Back</a></h1>"
 		# generate the log into a variable
-		logOutput += "<code><pre>"
-		logOutput += escapeHTML(runCmd("git log --stat"))
+		logOutput += "<hr /><code><pre>"
+		logOutput += escapeHTML(runCmd("git log --stat")).replace('\ncommit','</pre></code><hr /><code><pre>commit')
 		logOutput += "</pre></code>"
-		logOutput += "</body></html>"
+		logOutput += "</body>"
+		logOutput += "</html>"
 		saveFile('report/log.html', logOutput)
 	#######################################################################
 	def runGitStats(self):
