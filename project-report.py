@@ -125,8 +125,18 @@ class main():
 			else:
 				if pathExists(argument[0]):
 					projectDirectory=argument
-		self.buildIndex(projectDirectory)
+		# remove previous reports
+		if pathExists('report/'):
+			runCmd("rm -vr report/")
+		# create the directories that the report will be stored in
+		runCmd("mkdir -p report")
+		runCmd("mkdir -p report/webstats")
+		runCmd("mkdir -p report/lint")
+		# copy the logo into the report
+		runCmd("cp -v logo.png report/logo.png")
+		# begin running modules for project-report
 		self.runPylint(projectDirectory)
+		self.buildIndex(projectDirectory)
 		self.runPydocs(projectDirectory)
 		self.runGitLog()
 		self.runGitStats()
@@ -141,15 +151,6 @@ class main():
 		'''
 		Builds the index page of the report website.
 		'''
-		# remove previous reports
-		if pathExists('report/'):
-			runCmd("rm -vr report/")
-		# create the directories that the report will be stored in
-		runCmd("mkdir -p report")
-		runCmd("mkdir -p report/webstats")
-		runCmd("mkdir -p report/lint")
-		# copy the logo into the report
-		runCmd("cp -v logo.png report/logo.png")
 		# create the index page to be saved to report/index.html
 		reportIndex  = "<html>\n"
 		reportIndex += "<head>\n"
@@ -179,6 +180,18 @@ class main():
 		reportIndex += "<video src='video.mp4' poster='logo.png' width='800' controls>\n"
 		reportIndex += "<a href='video.mp4'>Gource Video Rendering</a>\n"
 		reportIndex += "</video>\n"
+		if pathExists(pathJoin(projectDirectory,'report','lint','index.html')):
+			# find the reported quality of all code in the repo
+			tempQuality = loadFile(pathJoin(realpath(projectDirectory),'report','lint','index.html'))
+			searchString = 'code has been rated at '
+			tempQuality = tempQuality[tempQuality.find(searchString)+len(searchString):]
+			tempQuality = tempQuality[:tempQuality.find('/')]
+			# get the percentage
+			tempQuality = (float(tempQuality)/10)*100
+			# generate the webpage code
+			reportIndex += "<div style='background-color: green;width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
+			reportIndex += "<span>Code Quality : "+str(int(tempQuality))+"%</span>\n"
+			reportIndex += "</div>\n"
 		# generate the markdown of the README.md file and insert it, if it exists
 		if pathExists(pathJoin(projectDirectory,'README.md')):
 			reportIndex += "<div id='markdownArea'>\n"
