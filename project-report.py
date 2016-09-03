@@ -189,9 +189,20 @@ class main():
 			# get the percentage
 			tempQuality = (float(tempQuality)/10)*100
 			# generate the webpage code
-			reportIndex += "<div style='background-color: green;width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
-			reportIndex += "<span>Code Quality : "+str(int(tempQuality))+"%</span>\n"
-			reportIndex += "</div>\n"
+			if tempQuality < 15:
+				# the bar is too small so generate it to the right of the code quality text
+
+				reportIndex += "<div>\n"
+				reportIndex += "<div style='float:left;'>Code Quality :</div>\n"
+				reportIndex += "<div style='float:left;background-color: green;width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
+				reportIndex += "<span>"+str(int(tempQuality))+"%</span>\n"
+				reportIndex += "</div>\n"
+				reportIndex += "</div>\n"
+			else:
+				# generate a regular bar with code quality inside the bar
+				reportIndex += "<div style='background-color: green;width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
+				reportIndex += "<span>Code Quality : "+str(int(tempQuality))+"%</span>\n"
+				reportIndex += "</div>\n"
 		# generate the markdown of the README.md file and insert it, if it exists
 		if pathExists(pathJoin(projectDirectory,'README.md')):
 			reportIndex += "<div id='markdownArea'>\n"
