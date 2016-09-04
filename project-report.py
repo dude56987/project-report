@@ -221,8 +221,9 @@ class main():
 		lintIndex += "th{border-width:3px;border-style:solid;"
 		lintIndex += "color:white;background-color:black;}"
 		lintIndex += "</style><body>"
-		lintIndex += "<h1><a href='../index.html'>Back</a></h1>"
-		lintIndex += "<hr /><h1 id='#index'>Index</h1>"
+		lintIndex += "<a href='../index.html'><h1 id='#index'>Main Project Report</h1></a><hr />"
+		lintIndex += "<div style='float: right;'>"
+		lintIndex += "<h1 id='#index'>Index</h1><hr />"
 		for filePath in sourceFiles:
 			# pull filename out of the filepath and generate a directory file link
 			filePath=filePath.split('/').pop()
@@ -230,6 +231,7 @@ class main():
 			# write the index link
 			lintIndex += '<a href="'+filePath+'.html">'+filePath+'</a><br />'
 		lintIndex += "<hr />"
+		lintIndex += "</div>"
 		# create file string
 		pylintTempString=''
 		for filePath in sourceFiles:
@@ -244,9 +246,9 @@ class main():
 		# generate the individual files
 		for filePath in sourceFiles:
 			# grab the filename by spliting the path and poping the last element
-			fileName=filePath.split('/').pop()
+			fullFileName=filePath.split('/').pop()
 			# remove .py from the fileName to make adding the html work
-			fileName=fileName[:(len(fileName)-3)]
+			fileName=fullFileName[:(len(fullFileName)-3)]
 			debug.add('Generating pylint report for file',filePath)
 			# run pylint on the code and generate related page
 			lintFile  = "<html><style>"
@@ -254,9 +256,11 @@ class main():
 			lintFile += "th{border-width:3px;border-style:solid;"
 			lintFile += "color:white;background-color:black;}"
 			lintFile += "</style><body>"
-			lintFile += "<h1><a href='index.html'>Back</a></h1>"
-			lintFile += "<hr /><h1 id='#index'>Index</h1>"
-			# build the index
+			# place the location of the file
+			lintFile += "<h2>"+relpath(filePath)+"</h2><hr />"
+			# create the index box
+			lintFile += "<div style='float: right;'><a href='index.html'><h1 id='#index'>Index</h1></a><hr />"
+			# build the index linking to all other lint files
 			for indexFilePath in sourceFiles:
 				# pull the filename without the extension out of the indexfilepath
 				indexFileName=indexFilePath.split('/').pop()
@@ -264,10 +268,14 @@ class main():
 				# building the link index
 				lintFile += '<a href="'+indexFileName+'.html">'+indexFileName+'</a><br />'
 			lintFile += "<hr />"
+			lintFile += "</div>"
+			# create the uml diagram
+			runCmd('pyreverse '+relpath(filePath)+' -o '+fullFileName+'.dot')
+			runCmd('dot -Tpng *.'+fullFileName+'.dot > report/lint/'+fileName+'.png')
+			# remove uml file that was previously generated
+			runCmd('rm *.'+fullFileName+'.dot')
 			# build the content
-			# create a entry in the file
-			lintFile += "<h2>"+relpath(filePath)+"</h2>"
-			lintFile += "<a href='index.html'>Return to Index</a>"
+			lintFile += '<img src='+fileName+'.png />'
 			# adding pylint output for the file to the report
 			lintFile += runCmd('pylint --include-naming-hint="y" -f html\
 				--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\

@@ -2,9 +2,9 @@ Package: project-report
 Version: 0.0.1
 Section: admin
 Maintainer: Carl J Smith <BM-NBHLt5EUFVEbRCmrbVrfCyaB2c8d24U9>
-Installed-Size: 44
+Installed-Size: 60
 Priority: optional
 Architecture: all
-Depends: python (>=2.7), gitstats, gource, pylint, python-markdown
+Depends: python (>=2.7), gitstats, gource, pylint, python-markdown, graphviz
 Description: Generate a project report for a git repository.
- Generate a project report for a git repository. 
+ Generate a project report for a git repository.
