@@ -68,32 +68,21 @@ def findSources(directory, sourceExtension):
 	sourceExtension is a string in the form of ".py" so some more
 	examples would be ".sh",".js",".cpp",".css",".html"
 	'''
-	debug.add('directory', directory)
-	debug.add('sourceExtension', sourceExtension)
 	sourcesArray = []
 	directoryItems = listdir(directory)
-	debug.add('directory contents are', directoryItems)
 	# for each location (file or directory) in this directory
 	for location in directoryItems:
 		# get the absolute location
 		location=realpath(pathJoin(directory,location))
 		if isfile(location):
-			debug.add('location is a file', location)
 			# check if the file is a selected source type
-			debug.add('extension is',location.split('.'))
 			if '.' in location:
-				debug.add('searched for extension', sourceExtension[1:])
-				debug.add('location extension', location.split('.')[1])
 				if sourceExtension[1:] == location.split('.')[1]:
-					debug.add('adding the file to the array')
 					# this is a file, append it to the returned files
 					sourcesArray.append(realpath(pathJoin(directory, location)))
-					debug.add('sourcesArray has been changed',sourcesArray)
 		elif isdir(location):
-			debug.add('location is a direcetory', location)
 			# this is a directory so go deeper
 			sourcesArray += findSources(pathJoin(directory, location), sourceExtension)
-	debug.add('Found Sources',sourcesArray)
 	# this function is dumb and has no false return values
 	return sourcesArray
 ########################################################################
@@ -219,17 +208,13 @@ class main():
 		'''
 		Run pylint for each .py file found inside of the project directory.
 		'''
-		debug.banner()
 		debug.add('starting pylint process')
-		debug.banner()
 		debug.add('obtaining list of source files')
 		# get the real path of the project directory
 		projectDirectory = realpath(projectDirectory)
 		# get a list of all the python source files, this is to find the paths
 		# of all python source files
 		sourceFiles = findSources(projectDirectory, '.py')
-		debug.banner()
-		debug.add('source files for pylint index',sourceFiles)
 		# generate the pylint index file
 		lintIndex  = "<html><style>"
 		lintIndex += "td{border-width:3px;border-style:solid;}"
@@ -239,7 +224,6 @@ class main():
 		lintIndex += "<h1><a href='../index.html'>Back</a></h1>"
 		lintIndex += "<hr /><h1 id='#index'>Index</h1>"
 		for filePath in sourceFiles:
-			debug.add('building link in index to',filePath)
 			# pull filename out of the filepath and generate a directory file link
 			filePath=filePath.split('/').pop()
 			filePath=filePath[:(len(filePath)-3)]
@@ -256,7 +240,6 @@ class main():
 			pylintTempString)
 			#pathJoin(relpath(projectDirectory),'*'))
 		# save the created index file
-		debug.add('save file at',pathJoin(projectDirectory,'report/lint/index.html'))
 		saveFile(pathJoin(projectDirectory,'report/lint/index.html'), lintIndex)
 		# generate the individual files
 		for filePath in sourceFiles:
@@ -264,7 +247,6 @@ class main():
 			fileName=filePath.split('/').pop()
 			# remove .py from the fileName to make adding the html work
 			fileName=fileName[:(len(fileName)-3)]
-			debug.banner()
 			debug.add('Generating pylint report for file',filePath)
 			# run pylint on the code and generate related page
 			lintFile  = "<html><style>"
@@ -292,30 +274,20 @@ class main():
 				filePath)
 			lintFile += "<hr />"
 			# write the lintFile
-			debug.add('save file at',pathJoin(projectDirectory,'report/lint/',(fileName+'.html')))
 			saveFile(pathJoin(projectDirectory,'report/lint/',(fileName+'.html')), lintFile)
-		debug.banner()
-		debug.add('done building lint report')
-		debug.banner()
 	#######################################################################
 	def runPydocs(self,directory):
 		'''
 		Run pydocs for each .py file in the project directory.
 		'''
-		debug.banner()
 		debug.add('running pydocs section')
-		debug.banner()
 		# generate python documentation
 		runCmd('mkdir -p report/docs/')
 		# for all python files create documentation files
 		sourceFiles = findSources(directory,'.py')
-		debug.add('sourcefiles found for pydocs',sourceFiles)
 		for location in sourceFiles:
-			debug.banner()
 			debug.add('RUNNING DOCUMENTATION FOR')
 			debug.add(location)
-			debug.banner()
-			debug.add('pydoc file location',location)
 			# Attempt to run pydoc normally with .py
 			# extension added to the filename
 			runCmd("pydoc -w "+location)
@@ -326,22 +298,17 @@ class main():
 			# first run of pydoc remove the .py extension
 			# to get some modules to work
 			if not pathExists(location+'.html'):
-				debug.add('documentation was not created on first attempt')
 				runCmd("pydoc -w "+location)
 				runCmd("pydoc3 -w "+location)
-			debug.add('pydoc location without .py',location)
 			# get the filename by poping off the end of the location
 			fileName=location.split('/').pop()
 			# copy all the created documentation to the report
-			debug.add("mv "+fileName+".html "+pathJoin(directory,'report/docs/'))
 			runCmd("mv "+fileName+".html "+pathJoin(directory,'report/docs/'))
 			# convert the location into a folder by removing the filename
 			location=location.split('/')
 			location.pop()
 			location='/'.join(location)
-			debug.add('pydoc location without filename',location)
 			# cleanup pydoc generated cache
-			debug.add("rm -rv "+location+"/__pycache__")
 			runCmd("rm -rv "+location+"/__pycache__")
 	#######################################################################
 	def runGitLog(self):
