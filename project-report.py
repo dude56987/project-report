@@ -79,12 +79,15 @@ def findSources(directory, sourceExtension, ignoreList=None):
 			if '.' in location:
 				if sourceExtension[1:] == location.split('.')[1]:
 					# check if the ignore list has been set
-					if ignoreList != None:
+					if ignoreList != None and len(ignoreList) != 0:
 						for ignoreItem in ignoreList:
 							# check if the file is in the ignore list
 							if ignoreItem not in location:
 								# this is a file, append it to the returned files
 								sourcesArray.append(realpath(pathJoin(directory, location)))
+					else:
+						# this is a file, append it to the returned files
+						sourcesArray.append(realpath(pathJoin(directory, location)))
 		elif isdir(location):
 			# this is a directory so go deeper
 			sourcesArray += findSources(pathJoin(directory, location), sourceExtension, ignoreList)
@@ -168,8 +171,6 @@ class main():
 		# copy the logo into the report
 		runCmd("cp -v logo.png report/logo.png")
 		# begin running modules for project-report
-		if runBuildIndex == True:
-			self.buildIndex(projectDirectory)
 		if runLint == True:
 			self.pylint(projectDirectory)
 		if runDocs == True:
@@ -180,6 +181,10 @@ class main():
 			self.gitStats()
 		if runGource == True:
 			self.gource()
+		# the index must be built last since it pulls data from some
+		# of the previously generated things
+		if runBuildIndex == True:
+			self.buildIndex(projectDirectory)
 		# cleanup the .pyc files
 		for source in findSources(projectDirectory,'.pyc',self.ignoreList):
 			runCmd('rm -v '+source)
