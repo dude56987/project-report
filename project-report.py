@@ -185,7 +185,7 @@ class main():
 				# if positive quality is detected
 				tempColor='green'
 			# generate the webpage code
-			if tempQuality < abs(15):
+			if tempQuality < abs(30):
 				# the bar is too small so generate it to the right of the code quality text
 
 				reportIndex += "<div>\n"
