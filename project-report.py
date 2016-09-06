@@ -58,7 +58,7 @@ def runCmd(command):
 	'''
 	return popen(command).read()
 #######################################################################
-def findSources(directory, sourceExtension):
+def findSources(directory, sourceExtension, ignoreList=None):
 	'''
 	Find source files in a directory recursively. Return an array
 	containing the full path to each of source files found.
@@ -78,16 +78,30 @@ def findSources(directory, sourceExtension):
 			# check if the file is a selected source type
 			if '.' in location:
 				if sourceExtension[1:] == location.split('.')[1]:
-					# this is a file, append it to the returned files
-					sourcesArray.append(realpath(pathJoin(directory, location)))
+					# check if the ignore list has been set
+					if ignoreList != None:
+						for ignoreItem in ignoreList:
+							# check if the file is in the ignore list
+							if ignoreItem not in location:
+								# this is a file, append it to the returned files
+								sourcesArray.append(realpath(pathJoin(directory, location)))
 		elif isdir(location):
 			# this is a directory so go deeper
-			sourcesArray += findSources(pathJoin(directory, location), sourceExtension)
+			sourcesArray += findSources(pathJoin(directory, location), sourceExtension, ignoreList)
 	# this function is dumb and has no false return values
 	return sourcesArray
 ########################################################################
 class main():
 	def __init__(self,arguments):
+		# set the default values
+		runBuildIndex = True
+		runLint = True
+		runDocs = True
+		runGitLog = True
+		runGitStats = True
+		runGource = True
+		# create the ignore list of filePaths to ignore in report
+		self.ignoreList=list()
 		# remove the script path from arguments
 		del arguments[0]
 		# if no arguments are defined then set the directory to the current
@@ -106,14 +120,44 @@ class main():
 				print('    Will set the output directory to generate the /report/ in')
 				print('--projectdir')
 				print('    Set directory the project report will be generated from')
+				print('--ignore')
+				print('    Ignore the given file path.')
+				print('    ex) project-report --ignore README.md')
+				print('--disable')
+				print('    Disable modules ran in the report')
+				print('    Modules are')
+				print('    - index')
+				print('    - lint')
+				print('    - docs')
+				print('    - gitlog')
+				print('    - gitstats')
+				print('    - gource')
+				print('#'*80)
 				exit()
 			if 'output' == argument[0]:
 				projectDirectory=argument[1]
 			if 'projectdir' == argument[0]:
+				# set the project directory to use to the given argument
 				projectDirectory=argument[1]
 			else:
 				if pathExists(argument[0]):
 					projectDirectory=argument
+			if 'ignore' == argument[0]:
+				# add the path to the ignore list
+				self.ignoreList.append(argument[1])
+			if 'disable' == argument[0]:
+				if argument[1] == 'index':
+					runBuildIndex = False
+				elif argument[1] == 'lint':
+					runLint = False
+				elif argument[1] == 'docs':
+					runDocs = False
+				elif argument[1] == 'gitlog':
+					runGitLog = False
+				elif argument[1] == 'gitstats':
+					runGitStats = False
+				elif argument[1] == 'gource':
+					runGource = False
 		# remove previous reports
 		if pathExists('report/'):
 			runCmd("rm -vr report/")
@@ -124,14 +168,20 @@ class main():
 		# copy the logo into the report
 		runCmd("cp -v logo.png report/logo.png")
 		# begin running modules for project-report
-		self.runPylint(projectDirectory)
-		self.buildIndex(projectDirectory)
-		self.runPydocs(projectDirectory)
-		self.runGitLog()
-		self.runGitStats()
-		self.runGource()
+		if runBuildIndex == True:
+			self.buildIndex(projectDirectory)
+		if runLint == True:
+			self.pylint(projectDirectory)
+		if runDocs == True:
+			self.pydocs(projectDirectory)
+		if runGitLog == True:
+			self.gitLog()
+		if runGitStats == True:
+			self.gitStats()
+		if runGource == True:
+			self.gource()
 		# cleanup the .pyc files
-		for source in findSources(projectDirectory,'.pyc'):
+		for source in findSources(projectDirectory,'.pyc',self.ignoreList):
 			runCmd('rm -v '+source)
 		# launch the generated website
 		runCmd("exo-open report/index.html")
@@ -211,7 +261,7 @@ class main():
 		# write the file
 		saveFile('report/index.html', reportIndex)
 	#######################################################################
-	def runPylint(self,projectDirectory):
+	def pylint(self,projectDirectory):
 		'''
 		Run pylint for each .py file found inside of the project directory.
 		'''
@@ -221,7 +271,7 @@ class main():
 		projectDirectory = realpath(projectDirectory)
 		# get a list of all the python source files, this is to find the paths
 		# of all python source files
-		sourceFiles = findSources(projectDirectory, '.py')
+		sourceFiles = findSources(projectDirectory, '.py', self.ignoreList)
 		# generate the pylint index file
 		lintIndex  = "<html><style>"
 		lintIndex += "td{border-width:3px;border-style:solid;}"
@@ -291,7 +341,7 @@ class main():
 			# write the lintFile
 			saveFile(pathJoin(projectDirectory,'report/lint/',(fileName+'.html')), lintFile)
 	#######################################################################
-	def runPydocs(self,directory):
+	def pydocs(self,directory):
 		'''
 		Run pydocs for each .py file in the project directory.
 		'''
@@ -299,7 +349,7 @@ class main():
 		# generate python documentation
 		runCmd('mkdir -p report/docs/')
 		# for all python files create documentation files
-		sourceFiles = findSources(directory,'.py')
+		sourceFiles = findSources(directory,'.py', self.ignoreList)
 		for location in sourceFiles:
 			debug.add('RUNNING DOCUMENTATION FOR')
 			debug.add(location)
@@ -326,7 +376,7 @@ class main():
 			# cleanup pydoc generated cache
 			runCmd("rm -rv "+location+"/__pycache__")
 	#######################################################################
-	def runGitLog(self):
+	def gitLog(self):
 		'''
 		Generate the "git log" output formated into a webpage.
 		'''
@@ -346,7 +396,7 @@ class main():
 		logOutput += "</html>"
 		saveFile('report/log.html', logOutput)
 	#######################################################################
-	def runGitStats(self):
+	def gitStats(self):
 		'''
 		Run gitstats to generate a website containing git repository statistics.
 		Then place it inside the report.
@@ -354,7 +404,7 @@ class main():
 		# generate git statistics
 		runCmd("gitstats -c processes='8' . report/webstats")
 	#######################################################################
-	def runGource(self):
+	def gource(self):
 		'''
 		Run gource to generate a video of the git repository being worked on.
 		'''
