@@ -103,22 +103,32 @@ class main():
 		runGitLog = True
 		runGitStats = True
 		runGource = True
+		# create a list to store files that will have a trace ran on them
+		self.traceFiles=list()
+		# noDelete is a flag to not delete previously generated report
+		noDelete = False
 		# create the ignore list of filePaths to ignore in report
 		self.ignoreList=list()
+		# create the max trace depth default of 5
+		self.maxTraceDepth=5
 		# remove the script path from arguments
 		del arguments[0]
 		# if no arguments are defined then set the directory to the current
 		# directory
-		arguments=' '.join(arguments).split('-')
+		arguments=' '.join(arguments).split('--')
 		projectDirectory=curdir
 		for argument in arguments:
 			argument=argument.split(' ')
+			# convert argument flag to lowercase to make mistyping less of an issue
+			argument[0]=argument[0].lower()
 			if 'help' == argument[0]:
 				print('#'*80)
 				print('Project Report')
 				print('#'*80)
 				print('help')
 				print('    Display this menu')
+				print('--nodelete')
+				print('    Do not delete previously generated report before making this one.')
 				print('--output')
 				print('    Will set the output directory to generate the /report/ in')
 				print('--projectdir')
@@ -126,6 +136,13 @@ class main():
 				print('--ignore')
 				print('    Ignore the given file path.')
 				print('    ex) project-report --ignore README.md')
+				print('--trace')
+				print('    Add a file to the trace report')
+				print('    ex) project-report --trace main.py')
+				print('    You can add multuple files to the trace report')
+				print('    ex) project-report --trace main.py --trace other.py')
+				print('--maxTraceDepth')
+				print('    Set the max depth to trace execution of a file.')
 				print('--disable')
 				print('    Disable modules ran in the report')
 				print('    Modules are')
@@ -137,6 +154,14 @@ class main():
 				print('    - gource')
 				print('#'*80)
 				exit()
+			if 'maxtracedepth' == argument[0]:
+				# set the max trace depth to the number
+				self.maxTraceDepth = argument[1]
+			if 'trace' == argument[0]:
+				# append trace files to the trace
+				self.traceFiles.append(argument[1])
+			if 'nodelete' == argument[0]:
+				noDelete = True
 			if 'output' == argument[0]:
 				projectDirectory=argument[1]
 			if 'projectdir' == argument[0]:
@@ -162,12 +187,14 @@ class main():
 				elif argument[1] == 'gource':
 					runGource = False
 		# remove previous reports
-		if pathExists('report/'):
-			runCmd("rm -vr report/")
+		if not noDelete:
+			if pathExists('report/'):
+				runCmd("rm -vr report/")
 		# create the directories that the report will be stored in
 		runCmd("mkdir -p report")
 		runCmd("mkdir -p report/webstats")
 		runCmd("mkdir -p report/lint")
+		runCmd("mkdir -p report/trace")
 		# copy the logo into the report
 		runCmd("cp -v logo.png report/logo.png")
 		# begin running modules for project-report
@@ -175,6 +202,8 @@ class main():
 			self.pylint(projectDirectory)
 		if runDocs == True:
 			self.pydocs(projectDirectory)
+		if len(self.traceFiles) > 0:
+			self.trace(projectDirectory)
 		if runGitLog == True:
 			self.gitLog()
 		if runGitStats == True:
@@ -215,10 +244,13 @@ class main():
 			reportIndex += "</h1>\n"
 		# add the menu items
 		reportIndex += "<div id='menu'>\n"
-		reportIndex += "<a class='menuButton' href='webstats/index.html'>Stats</a>\n"
-		reportIndex += "<a class='menuButton' href='log.html'>Log</a>\n"
+		if pathExists(pathJoin(projectDirectory,'report','webstats','index.html')):
+			reportIndex += "<a class='menuButton' href='webstats/index.html'>Stats</a>\n"
+		if pathExists(pathJoin(projectDirectory,'report','log.html')):
+			reportIndex += "<a class='menuButton' href='log.html'>Log</a>\n"
 		reportIndex += "<a class='menuButton' href='docs/'>Docs</a>\n"
-		reportIndex += "<a class='menuButton' href='lint/index.html'>Lint</a>\n"
+		if pathExists(pathJoin(projectDirectory,'report','lint','index.html')):
+			reportIndex += "<a class='menuButton' href='lint/index.html'>Lint</a>\n"
 		reportIndex += "</div>\n"
 		# add video to webpage
 		reportIndex += "<video src='video.mp4' poster='logo.png' width='800' controls>\n"
@@ -245,15 +277,17 @@ class main():
 
 				reportIndex += "<div>\n"
 				reportIndex += "<div style='float:left;'>Code Quality :</div>\n"
-				reportIndex += "<div style='float:left;background-color: "+tempColor+";width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
+				reportIndex += "<div class='qualityBar' style='float:left;background-color: "+tempColor+";width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
 				reportIndex += "<span>"+str(int(tempQuality))+"%</span>\n"
 				reportIndex += "</div>\n"
 				reportIndex += "</div>\n"
 			else:
 				# generate a regular bar with code quality inside the bar
-				reportIndex += "<div style='background-color: "+tempColor+";width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
+				reportIndex += "<div class='qualityBar' style='background-color: "+tempColor+";width:"+str(int(tempQuality)*8)+"px;text-align: center;'>\n"
 				reportIndex += "<span>Code Quality : "+str(int(tempQuality))+"%</span>\n"
 				reportIndex += "</div>\n"
+		if pathExists(pathJoin(projectDirectory,'report','trace','index.html')):
+			reportIndex += "<a class='menuButton' style='float:right' href='trace/index.html'>trace</a>\n"
 		# generate the markdown of the README.md file and insert it, if it exists
 		if pathExists(pathJoin(projectDirectory,'README.md')):
 			reportIndex += "<div id='markdownArea'>\n"
@@ -265,6 +299,94 @@ class main():
 		reportIndex += "</body>\n</html>\n"
 		# write the file
 		saveFile('report/index.html', reportIndex)
+	#######################################################################
+	def trace(self,projectDirectory):
+		'''
+		Run pycallgraph for each .py file found inside of the project directory.
+		This will create a .png graph visually showing execution of the python
+		file.
+		'''
+		debug.add('Starting trace process...')
+		# get the real path of the project directory
+		projectDirectory = realpath(projectDirectory)
+		# get the list of all the traceFiles
+		sourceFiles = self.traceFiles
+		# generate the pylint index file
+		traceIndex  = "<html><style>"
+		traceIndex += "td{border-width:3px;border-style:solid;}"
+		traceIndex += "th{border-width:3px;border-style:solid;"
+		traceIndex += "color:white;background-color:black;}"
+		traceIndex += "</style><body>"
+		traceIndex += "<a href='../index.html'><h1 id='#index'>Main Project Report</h1></a><hr />"
+		traceIndex += "<div style='float: right;'>"
+		traceIndex += "<h1 id='#index'>Index</h1><hr />"
+		for filePath in sourceFiles:
+			# pull filename out of the filepath and generate a directory file link
+			fileName=filePath.split('/').pop()
+			fileName=fileName.split('.')[0]
+			# write the index link
+			traceIndex += '<a href="'+fileName+'.html">'+fileName+'</a><br />'
+		traceIndex += "<hr />"
+		traceIndex += "</div>"
+		# grab the first filename to place it as the index in the trace section
+		filePath = sourceFiles[0]
+		# pull filename out of the filepath and generate a directory file link
+		fileName=filePath.split('/').pop()
+		fileName=fileName.split('.')[0]
+		# add a pylint file for the project directory including all lint stuff inside
+		runCmd('pycallgraph --max-depth '+str(self.maxTraceDepth)\
+			+' graphviz --output-file='+pathJoin(relpath(projectDirectory),'report','trace','index.png')\
+			+' '+pathJoin(projectDirectory,filePath))
+		# build the image and link to the image file
+		traceIndex += '<a href="index.png"><img style="width:90%;height:90%" src="index.png" /></a>'
+		traceIndex += "<hr />"
+		traceIndex += '<div><pre>'
+		# generate the cprofile output for the trace file
+		traceIndex += runCmd('python -m cProfile -s ncalls '+pathJoin(projectDirectory,relpath(filePath)))
+		traceIndex += '</pre></div>'
+		traceIndex += '</body></html>'
+		# save the created index file
+		saveFile(pathJoin(projectDirectory,'report/trace/index.html'), traceIndex)
+		# generate the individual files
+		for filePath in sourceFiles:
+			# grab the filename by spliting the path and poping the last element
+			fullFileName=filePath.split('/').pop()
+			# remove .py from the fileName to make adding the html work
+			fileName=fullFileName[:(len(fullFileName)-3)]
+			debug.add('Generating pylint report for file',filePath)
+			# run pylint on the code and generate related page
+			traceFile  = "<html><style>"
+			traceFile += "td{border-width:3px;border-style:solid;}"
+			traceFile += "th{border-width:3px;border-style:solid;"
+			traceFile += "color:white;background-color:black;}"
+			traceFile += "</style><body>"
+			# place the location of the file
+			traceFile += "<h2>"+relpath(filePath)+"</h2><hr />"
+			# create the index box
+			traceFile += "<div style='float: right;'><a href='index.html'><h1 id='#index'>Index</h1></a><hr />"
+			# build the index linking to all other lint files
+			for indexFilePath in sourceFiles:
+				# pull the filename without the extension out of the indexfilepath
+				indexFileName=indexFilePath.split('/').pop()
+				indexFileName=indexFileName[:(len(indexFileName)-3)]
+				# building the link index
+				traceFile += '<a href="'+indexFileName+'.html">'+indexFileName+'</a><br />'
+			traceFile += "<hr />"
+			traceFile += "</div>"
+			# build the image and link to the image file
+			traceFile += '<a href="'+fileName+'"><img style="width:90%;height:90%" src='+fileName+'.png /></a>'
+			# building the graph
+			runCmd('pycallgraph --max-depth '+str(self.maxTraceDepth)\
+				+' graphviz --output-file='+pathJoin(relpath(projectDirectory),'report','trace',(fileName+'.png'))\
+				+' '+pathJoin(projectDirectory,filePath))
+			traceFile += "<hr />"
+			traceFile += '<div><pre>'
+			# generate the cprofile output for the trace file
+			traceFile += runCmd('python -m cProfile -s ncalls '+pathJoin(projectDirectory,relpath(filePath)))
+			traceFile += '</pre></div>'
+			traceFile += '</body></html>'
+			# write the traceFile
+			saveFile(pathJoin(projectDirectory,'report/trace/',(fileName+'.html')), traceFile)
 	#######################################################################
 	def pylint(self,projectDirectory):
 		'''
