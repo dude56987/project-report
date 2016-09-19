@@ -94,6 +94,58 @@ def findSources(directory, sourceExtension, ignoreList=None):
 	# this function is dumb and has no false return values
 	return sourcesArray
 ########################################################################
+def cProfile(projectDirectory, filePath, sortMethod='cumtime'):
+	'''
+	Run cProfile and convert the output into a html table
+	'''
+	cProfileOutput = runCmd('python -m cProfile -s '+sortMethod+' '+pathJoin(projectDirectory,relpath(filePath)))
+	outputStarted = False
+	returnOutput = '<table>\n'
+	cProfileOutput = cProfileOutput.split('\n')
+	for line in cProfileOutput:
+		# if output is started and line is not blank
+		if outputStarted and line != '':
+			# add the line to the return output
+			returnOutput +=	formatProfileLine(line)
+		else:
+			if 'ncalls' in line:
+				# formate the line as the header
+				line = formatProfileLine(line,'<th>','</th>')
+				# add line to returnOutput
+				returnOutput += line
+				# set the output started flag to be true
+				outputStarted = True
+	# close the table tag
+	returnOutput += '</table>\n'
+	# return cProfile output converted into HTML
+	return returnOutput
+########################################################################
+def formatProfileLine(line, openTag='<td>', closeTag='</td>'):
+	'''
+	OpenTag and CloseTag can be changed to set headers and regular data
+	'''
+	while '  ' in line:
+		# replace multuple lines of whitespace with a single
+		# tab of whitespace
+		line = line.replace('  ',' ')
+	# insert orignal line as a comment
+	tempLine = '\t<!-- '+str(line)+' -->\n'
+	# split the line based on single spaces
+	line = line.split(' ')
+	# remove empty entries at the begining of the line
+	if line[0] == '':
+		line.pop(0)
+	tempLine += '\t<tr>\n'
+	for index in range(4):
+		# check that the line is long enough to work and ignore blank lines
+		if len(line) > 4 and line[index] != '':
+			# create a cell in html for each data point in the cProfile ouput
+			tempLine += '\t\t'+openTag+escapeHTML(line[index])+closeTag+'\n'
+	tempLine += '\t\t'+openTag+escapeHTML(' '.join(line[5:]))+closeTag+'\n'
+	tempLine += '\t</tr>\n'
+	# return the cleaned up line output
+	return tempLine
+########################################################################
 class main():
 	def __init__(self,arguments):
 		# set the default values
@@ -111,6 +163,9 @@ class main():
 		self.ignoreList=list()
 		# create the max trace depth default of 5
 		self.maxTraceDepth=5
+		# the sortmethod for the trace, below is a link to the documentation on sort methods
+		# https://docs.python.org/3.5/library/profile.html#pstats.Stats.sort_stats
+		self.traceSortMethod='cumtime'
 		# remove the script path from arguments
 		del arguments[0]
 		# if no arguments are defined then set the directory to the current
@@ -143,6 +198,11 @@ class main():
 				print('    ex) project-report --trace main.py --trace other.py')
 				print('--maxTraceDepth')
 				print('    Set the max depth to trace execution of a file.')
+				print('--traceSortMethod')
+				print('    The method to sort trace results by. This can be')
+				print('    "ncalls" or "time" to sort by the number of times')
+				print('    a function is called, or by the time the function')
+				print('    requires to run.')
 				print('--disable')
 				print('    Disable modules ran in the report')
 				print('    Modules are')
@@ -154,6 +214,9 @@ class main():
 				print('    - gource')
 				print('#'*80)
 				exit()
+			if 'tracesortmethod' == argument[0]:
+				# set the trace sort method
+				self.traceSortMethod = argument[1]
 			if 'maxtracedepth' == argument[0]:
 				# set the max trace depth to the number
 				self.maxTraceDepth = argument[1]
@@ -342,7 +405,7 @@ class main():
 		traceIndex += "<hr />"
 		traceIndex += '<div><pre>'
 		# generate the cprofile output for the trace file
-		traceIndex += runCmd('python -m cProfile -s ncalls '+pathJoin(projectDirectory,relpath(filePath)))
+		traceIndex += cProfile(projectDirectory, filePath, self.traceSortMethod)
 		traceIndex += '</pre></div>'
 		traceIndex += '</body></html>'
 		# save the created index file
@@ -382,7 +445,7 @@ class main():
 			traceFile += "<hr />"
 			traceFile += '<div><pre>'
 			# generate the cprofile output for the trace file
-			traceFile += runCmd('python -m cProfile -s ncalls '+pathJoin(projectDirectory,relpath(filePath)))
+			traceFile += cProfile(projectDirectory, filePath)
 			traceFile += '</pre></div>'
 			traceFile += '</body></html>'
 			# write the traceFile
