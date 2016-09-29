@@ -287,12 +287,17 @@ class main():
 		'''
 		Builds the index page of the report website.
 		'''
+		# grab the project title from the readme
+		if pathExists(pathJoin(projectDirectory,'README.md')):
+			projectTitle = loadFile(pathJoin(projectDirectory,'README.md')).split('===')[0]
+		else:
+			projectTitle = False
 		# create the index page to be saved to report/index.html
 		reportIndex  = "<html>\n"
 		reportIndex += "<head>\n"
-		if pathExists(pathJoin(projectDirectory,'README.md')):
+		if projectTitle:
 			reportIndex += '<title>\n'
-			reportIndex += loadFile(pathJoin(projectDirectory,'README.md')).split('===')[0]
+			reportIndex += projectTitle
 			reportIndex += '\n</title>\n'
 		if pathExists('/usr/share/project-report/configs/style.css'):
 			reportIndex += "<style>\n"
@@ -300,17 +305,17 @@ class main():
 			reportIndex += "\n</style>\n"
 		reportIndex += "</head>\n"
 		reportIndex += "<body>\n"
-		if pathExists(pathJoin(projectDirectory,'README.md')):
+		if projectTitle:
 			# add the header for the project title
 			reportIndex += "<h1 style='text-align: center'>\n"
-			reportIndex += loadFile(pathJoin(projectDirectory,'README.md')).split('===')[0]
+			reportIndex += projectTitle
 			reportIndex += "</h1>\n"
 		# add the menu items
 		reportIndex += "<div id='menu'>\n"
 		if pathExists(pathJoin(projectDirectory,'report','webstats','index.html')):
 			reportIndex += "<a class='menuButton' href='webstats/index.html'>Stats</a>\n"
 		if pathExists(pathJoin(projectDirectory,'report','log.html')):
-			reportIndex += "<a class='menuButton' href='log.html'>Log</a>\n"
+			reportIndex += "<a class='menuButton' href='log.html'>Log & Diff</a>\n"
 		reportIndex += "<a class='menuButton' href='docs/'>Docs</a>\n"
 		if pathExists(pathJoin(projectDirectory,'report','lint','index.html')):
 			reportIndex += "<a class='menuButton' href='lint/index.html'>Lint</a>\n"
@@ -356,7 +361,7 @@ class main():
 			reportIndex += "<div id='markdownArea'>\n"
 			fileContent = loadFile(pathJoin(projectDirectory,'README.md'))
 			if fileContent != False:
-				fileContent=markdown(fileContent)
+				fileContent=markdown(fileContent.split('===\n')[1])
 				reportIndex += fileContent
 			reportIndex += "\n</div>\n"
 		reportIndex += "</body>\n</html>\n"
@@ -571,19 +576,62 @@ class main():
 		Generate the "git log" output formated into a webpage.
 		'''
 		# create the webpage for the git log output saved to report/log.html
-		logOutput  = "<html>"
+		logOutput  = "<html>\n"
+		logOutput += "<head>\n"
 		if pathExists('/usr/share/project-report/configs/style.css'):
-			logOutput += "<head><style>\n"
+			logOutput += "<style>\n"
 			logOutput += loadFile('/usr/share/project-report/configs/style.css')
-			logOutput += "\n</style></head>\n"
-		logOutput += "<body>"
-		logOutput += "<h1><a href='index.html'>Back</a></h1>"
-		# generate the log into a variable
-		logOutput += "<hr /><code><pre>"
-		logOutput += escapeHTML(runCmd("git log --stat")).replace('\ncommit','</pre></code><hr /><code><pre>commit')
-		logOutput += "</pre></code>"
-		logOutput += "</body>"
-		logOutput += "</html>"
+			logOutput += "\n</style>\n"
+		logOutput += "<script>\n"
+		logOutput += "function toggle(elementId){\n"
+		logOutput += "	if (document.getElementById(elementId).style.display == 'block'){\n"
+		logOutput += "		document.getElementById(elementId).style.display = 'none';\n"
+		logOutput += "	}else if (document.getElementById(elementId).style.display == 'none'){\n"
+		logOutput += "		document.getElementById(elementId).style.display = 'block';\n"
+		logOutput += "	}\n"
+		logOutput += "}\n"
+		logOutput += "</script>\n"
+		logOutput += "</head>\n"
+		logOutput += "<body>\n"
+		logOutput += "<h1><a href='index.html'>Back</a></h1>\n"
+		# pull all git commit identifiers
+		tempCommits = runCmd('git log --oneline').split('\n')
+		commits = list()
+		for commit in tempCommits:
+			if len(commit) > 2:
+				# grab the commit identifer by grabing the first value split by spaces
+				commits.append(commit.split(' '))
+		# for each commit generate the html log and diff
+		for commit in commits:
+			# pull the commit message
+			commitMessage = (' '.join(commit[1:]))
+			# start building the commit specific html
+			logOutput += "<hr />\n"
+			logOutput += "<button class='button' style='width: 100%;' onclick='toggle(\""+commit[0]+"\");return false;'>\n"
+			logOutput += "<h2 id='"+commitMessage.replace(' ','_')+"' >"+commitMessage+"</h2>\n"
+			logOutput += "</button>\n"
+			# generate the stats for the commit
+			logOutput += '<code><pre>\n'
+			logOutput += escapeHTML(runCmd("git show --stat "+commit[0]).replace(commitMessage,''))
+			logOutput += '</pre></code>\n'
+			logOutput += "<div id='"+commit[0]+"' class='diff' style='display: none;'>\n"
+			logOutput += '<hr />\n'
+			# start parsing the diff output
+			for line in escapeHTML(runCmd("git diff "+commit[0]+"^ "+commit[0])).split('\n'):
+				if len(line) > 1:
+					if line[0] == "+" and line[1] != "+":
+						logOutput += '<span class="addedLine">'+line+'</span><br />\n'
+					elif line[0] == "-" and line[1] != "-":
+						logOutput += '<span class="removedLine">'+line+'</span><br />\n'
+					else:
+						logOutput += line+'<br />\n'
+			logOutput += "<a class='button' style='display: inline-block;width: 100%;' href='#"+commitMessage.replace(' ','_')
+			logOutput += "' onclick='toggle(\""+commit[0]+"\");return true;'>\n"
+			logOutput += "Close Diff\n"
+			logOutput += "</a>\n"
+			logOutput += '</div>\n'
+		logOutput += "</body>\n"
+		logOutput += "</html>\n"
 		saveFile('report/log.html', logOutput)
 	#######################################################################
 	def gitStats(self):
