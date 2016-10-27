@@ -15,15 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ########################################################################
+import sys
+########################################################################
 class init():
 	'''
 	A master debuging object to handle all debugging output
-	
+
 	If given a value of False debugging will be disabled.
 	e.g. "debug=masterDebug(False)"
 	'''
-	def __init__(self,debug=True):
-		self.debug=debug
+	def __init__(self):
+		# check if the --debug is set in the command line
+		if '--debug' in sys.argv:
+			self.debug = True
+		else:
+			self.debug = False
 		self.text=[]
 		if self.debug==True:
 			self.banner(' PYTHON DEBUG ')
