@@ -619,12 +619,18 @@ class main():
 			# start parsing the diff output
 			for line in escapeHTML(runCmd("git diff "+commit[0]+"^ "+commit[0])).split('\n'):
 				if len(line) > 1:
+					# replace all tabs with 4 spaces
+					while '\t' in line:
+						line=line.replace('\t',('&nbsp;'*4))
+					# place added and removed lines into classes to color them with css
 					if line[0] == "+" and line[1] != "+":
 						logOutput += '<span class="addedLine">'+line+'</span><br />\n'
 					elif line[0] == "-" and line[1] != "-":
 						logOutput += '<span class="removedLine">'+line+'</span><br />\n'
 					else:
-						logOutput += line+'<br />\n'
+						# add endlines to all other lines not added or removed
+						# spaces need converted to NBSP for html
+						logOutput += (line.replace(' ','&nbsp;'))+'<br />\n'
 			logOutput += "<a class='button' style='display: inline-block;width: 100%;' href='#"+commitMessage.replace(' ','_')
 			logOutput += "' onclick='toggle(\""+commit[0]+"\");return true;'>\n"
 			logOutput += "Close Diff\n"
