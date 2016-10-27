@@ -5,7 +5,7 @@ Generate website reports for git repositories.
 
 - Generate pylint report on all python files
 - Run pydoc to create python documentation for all python files
-- Generate git log into a webpage
+- Generate a webpage containing git logs and diffs for each commit
 - Run gitstats to generate website of statistics about the project over time
 - Generate gource video of project commits and changes over time
 
