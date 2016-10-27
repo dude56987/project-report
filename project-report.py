@@ -56,7 +56,13 @@ def runCmd(command):
 	Runs a command on the terminal and returns the output as a
 	string.
 	'''
-	return popen(command).read()
+	debug.add('Running command',command)
+	commandObject = popen(command)
+	output = commandObject.read()
+	# print the output of the command for debug
+	debug.add('Command output',output)
+	# return the output of the comand
+	return output
 #######################################################################
 def findSources(directory, sourceExtension, ignoreList=None):
 	'''
@@ -351,9 +357,11 @@ class main():
 		if pathExists(pathJoin(projectDirectory,'report','lint','index.html')):
 			# find the reported quality of all code in the repo
 			tempQuality = loadFile(pathJoin(realpath(projectDirectory),'report','lint','index.html'))
+			debug.add('Quality search string',tempQuality)
 			searchString = 'code has been rated at '
 			tempQuality = tempQuality[tempQuality.find(searchString)+len(searchString):]
 			tempQuality = tempQuality[:tempQuality.find('/')]
+			debug.add('Calculated Code quality',tempQuality)
 			# get the percentage
 			tempQuality = (float(tempQuality)/10)*100
 			# detect negative values and select the correct coloring
@@ -468,9 +476,9 @@ class main():
 			# build the image and link to the image file
 			traceFile += '<a href="'+fileName+'"><img style="width:90%;height:90%" src='+fileName+'.png /></a>'
 			# building the graph
-			runCmd('pycallgraph --max-depth '+str(self.maxTraceDepth)\
-				+' graphviz --output-file='+pathJoin(relpath(projectDirectory),'report','trace',(fileName+'.png'))\
-				+' '+pathJoin(projectDirectory,filePath))
+			runCmd('pycallgraph --max-depth '+str(self.maxTraceDepth)+\
+				' graphviz --output-file='+pathJoin(relpath(projectDirectory),'report','trace',(fileName+'.png'))+\
+				' '+pathJoin(projectDirectory,filePath))
 			traceFile += "<hr />"
 			traceFile += '<div><pre>'
 			# generate the cprofile output for the trace file
@@ -484,13 +492,13 @@ class main():
 		'''
 		Run pylint for each .py file found inside of the project directory.
 		'''
-		debug.add('starting pylint process')
-		debug.add('obtaining list of source files')
+		debug.add('Generating pylint report for each file...')
 		# get the real path of the project directory
 		projectDirectory = realpath(projectDirectory)
 		# get a list of all the python source files, this is to find the paths
 		# of all python source files
 		sourceFiles = findSources(projectDirectory, '.py', self.ignoreList)
+		debug.add('Sourcefiles found',sourceFiles)
 		# generate the pylint index file
 		lintIndex  = "<html><style>\n"
 		lintIndex += "td{border-width:3px;border-style:solid;}\n"
@@ -513,10 +521,9 @@ class main():
 		for filePath in sourceFiles:
 			pylintTempString += pathJoin(relpath(projectDirectory),filePath)+' '
 		# add a pylint file for the project directory including all lint stuff inside
-		lintIndex += runCmd('pylint --include-naming-hint="y" -f html\
-			--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
+		lintIndex += runCmd('pylint --include-naming-hint="y" -f html '+\
+			'--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
 			pylintTempString)
-			#pathJoin(relpath(projectDirectory),'*'))
 		# save the created index file
 		saveFile(pathJoin(projectDirectory,'report/lint/index.html'), lintIndex)
 		# generate the individual files
@@ -547,14 +554,17 @@ class main():
 			lintFile += "</div>\n"
 			# create the uml diagram
 			runCmd('pyreverse '+relpath(filePath)+' -o '+fullFileName+'.dot')
+			if not pathExists(fullFileName+'.dot'):
+				# if the code is python 3 you must use pyreverse3
+				runCmd('pyreverse3 '+relpath(filePath)+' -o '+fullFileName+'.dot')
 			runCmd('dot -Tpng *.'+fullFileName+'.dot > report/lint/'+fileName+'.png')
 			# remove uml file that was previously generated
 			runCmd('rm *.'+fullFileName+'.dot')
 			# build the content
 			lintFile += '<img src='+fileName+'.png />\n'
 			# adding pylint output for the file to the report
-			lintFile += runCmd('pylint --include-naming-hint="y" -f html\
-				--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
+			lintFile += runCmd('pylint --include-naming-hint="y" -f html '+\
+				'--rcfile="/usr/share/project-report/configs/pylint.cfg" '+\
 				filePath)
 			lintFile += "<hr />\n"
 			# write the lintFile
@@ -564,18 +574,18 @@ class main():
 		'''
 		Run pydocs for each .py file in the project directory.
 		'''
-		debug.add('running pydocs section')
+		debug.add('Generating pydocs section...')
 		# generate python documentation
 		runCmd('mkdir -p report/docs/')
 		# for all python files create documentation files
 		sourceFiles = findSources(directory,'.py', self.ignoreList)
 		for location in sourceFiles:
-			debug.add('RUNNING DOCUMENTATION FOR')
-			debug.add(location)
+			debug.add('Building documentation for',location)
 			# Attempt to run pydoc normally with .py
 			# extension added to the filename
 			runCmd("pydoc -w "+location)
-			runCmd("pydoc3 -w "+location)
+			if not pathExists(location+'.html'):
+				runCmd("pydoc3 -w "+location)
 			# remove .py extension from the location
 			location=location[:(len(location)-3)]
 			# if no documentation was created by the
@@ -583,7 +593,8 @@ class main():
 			# to get some modules to work
 			if not pathExists(location+'.html'):
 				runCmd("pydoc -w "+location)
-				runCmd("pydoc3 -w "+location)
+				if not pathExists(location+'.html'):
+					runCmd("pydoc3 -w "+location)
 			# get the filename by poping off the end of the location
 			fileName=location.split('/').pop()
 			# copy all the created documentation to the report
