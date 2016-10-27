@@ -68,7 +68,11 @@ def findSources(directory, sourceExtension, ignoreList=None):
 	sourceExtension is a string in the form of ".py" so some more
 	examples would be ".sh",".js",".cpp",".css",".html"
 	'''
+	# remove leading . in sourceExtension
+	sourceExtension = sourceExtension.replace('.','')
+	# sources array stores search results
 	sourcesArray = []
+	# get all items in the directory
 	directoryItems = listdir(directory)
 	# for each location (file or directory) in this directory
 	for location in directoryItems:
@@ -77,22 +81,42 @@ def findSources(directory, sourceExtension, ignoreList=None):
 		if isfile(location):
 			# check if the file is a selected source type
 			if '.' in location:
-				if sourceExtension[1:] == location.split('.')[1]:
-					# check if the ignore list has been set
-					if ignoreList != None and len(ignoreList) != 0:
-						for ignoreItem in ignoreList:
-							# check if the file is in the ignore list
-							if ignoreItem not in location:
-								# this is a file, append it to the returned files
-								sourcesArray.append(realpath(pathJoin(directory, location)))
-					else:
-						# this is a file, append it to the returned files
-						sourcesArray.append(realpath(pathJoin(directory, location)))
+				if sourceExtension == location.split('.')[1]:
+					# this is a file, append it to the returned files
+					sourcesArray.append(realpath(pathJoin(directory, location)))
 		elif isdir(location):
 			# this is a directory so go deeper
-			sourcesArray += findSources(pathJoin(directory, location), sourceExtension, ignoreList)
+			sourcesArray += findSources(pathJoin(directory, location), sourceExtension)
+	# remove all sources that match the ignore list
+	finalArray = list()
+	# read through all file paths found in the search and check that they do not
+	# match any items in the ignoreList array
+	for location in sourcesArray:
+		debug.add('Checking location',location)
+		# check that the location is not already in the list
+		# e.g. prevent duplicates
+		if location not in finalArray and location != '':
+			debug.add('Location does not already exist and is not blank')
+			tempLocation = realpath(pathJoin(directory, location))
+			addLocation = True
+			# check if the ignore list has been set
+			if ignoreList != None:
+				debug.add('An ignore list was set')
+				for ignoreItem in ignoreList:
+					debug.add('Checking ignoreList item', ignoreItem)
+					# check if the item to be added matches the ignore list
+					# if no match is found add the item
+					if ignoreItem in location:
+						debug.add('Item was found in location', location)
+						debug.add('Item will be ignored')
+						# this is a file, append it to the returned files
+						addLocation = False
+			# if no matches were found in the location for ignore strings
+			if addLocation:
+				# add tempLocation to the finalArray output
+				finalArray.append(tempLocation)
 	# this function is dumb and has no false return values
-	return sourcesArray
+	return finalArray
 ########################################################################
 def cProfile(projectDirectory, filePath, sortMethod='cumtime'):
 	'''
