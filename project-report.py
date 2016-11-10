@@ -39,6 +39,7 @@ from os.path import join as pathJoin
 from cgi import escape as escapeHTML
 from markdown import markdown
 from math import ceil
+from multiprocessing import Process
 # add custom libaries path
 sys.path.append('/usr/share/project-report/')
 # custom libaries
@@ -292,19 +293,31 @@ class main():
 		runCmd("mkdir -p report/log")
 		# copy the logo into the report
 		runCmd("cp -v logo.png report/logo.png")
+		# create an array to manage the processes
+		work = list()
 		# begin running modules for project-report
 		if runLint == True:
-			self.pylint(projectDirectory)
+			work.append(Process(name='runLint',target=self.pylint,args=(projectDirectory,)))
 		if runDocs == True:
-			self.pydocs(projectDirectory)
+			work.append(Process(name='runDocs',target=self.pydocs, args=(projectDirectory,)))
 		if len(self.traceFiles) > 0:
-			self.trace(projectDirectory)
+			work.append(Process(name='trace',target=self.trace, args=(projectDirectory,)))
 		if runGitLog == True:
-			self.gitLog()
+			work.append(Process(name='runGitLog',target=self.gitLog))
 		if runGitStats == True:
-			self.gitStats()
+			work.append(Process(name='runGitStats',target=self.gitStats))
 		if runGource == True:
-			self.gource()
+			work.append(Process(name='runGource',target=self.gource))
+		# start all processes
+		for job in work:
+			job.start()
+		activeProcesses = True
+		# wait till all processes are complete
+		while activeProcesses:
+			activeProcesses = False
+			for job in work:
+				if job.is_alive():
+					activeProcesses = True
 		# the index must be built last since it pulls data from some
 		# of the previously generated things
 		if runBuildIndex == True:
