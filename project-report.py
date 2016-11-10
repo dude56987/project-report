@@ -38,6 +38,7 @@ from os.path import exists as pathExists
 from os.path import join as pathJoin
 from cgi import escape as escapeHTML
 from markdown import markdown
+from math import ceil
 # add custom libaries path
 sys.path.append('/usr/share/project-report/')
 # custom libaries
@@ -288,6 +289,7 @@ class main():
 		runCmd("mkdir -p report/webstats")
 		runCmd("mkdir -p report/lint")
 		runCmd("mkdir -p report/trace")
+		runCmd("mkdir -p report/log")
 		# copy the logo into the report
 		runCmd("cp -v logo.png report/logo.png")
 		# begin running modules for project-report
@@ -344,8 +346,8 @@ class main():
 		reportIndex += "<div id='menu'>\n"
 		if pathExists(pathJoin(projectDirectory,'report','webstats','index.html')):
 			reportIndex += "<a class='menuButton' href='webstats/index.html'>Stats</a>\n"
-		if pathExists(pathJoin(projectDirectory,'report','log.html')):
-			reportIndex += "<a class='menuButton' href='log.html'>Log & Diff</a>\n"
+		if pathExists(pathJoin(projectDirectory,'report','log/log.html')):
+			reportIndex += "<a class='menuButton' href='log/log.html'>Log & Diff</a>\n"
 		reportIndex += "<a class='menuButton' href='docs/'>Docs</a>\n"
 		if pathExists(pathJoin(projectDirectory,'report','lint','index.html')):
 			reportIndex += "<a class='menuButton' href='lint/index.html'>Lint</a>\n"
@@ -611,24 +613,24 @@ class main():
 		Generate the "git log" output formated into a webpage.
 		'''
 		# create the webpage for the git log output saved to report/log.html
-		logOutput  = "<html>\n"
-		logOutput += "<head>\n"
+		header = "<html>\n"
+		header += "<head>\n"
 		if pathExists('/usr/share/project-report/configs/style.css'):
-			logOutput += "<style>\n"
-			logOutput += loadFile('/usr/share/project-report/configs/style.css')
-			logOutput += "\n</style>\n"
-		logOutput += "<script>\n"
-		logOutput += "function toggle(elementId){\n"
-		logOutput += "	if (document.getElementById(elementId).style.display == 'block'){\n"
-		logOutput += "		document.getElementById(elementId).style.display = 'none';\n"
-		logOutput += "	}else if (document.getElementById(elementId).style.display == 'none'){\n"
-		logOutput += "		document.getElementById(elementId).style.display = 'block';\n"
-		logOutput += "	}\n"
-		logOutput += "}\n"
-		logOutput += "</script>\n"
-		logOutput += "</head>\n"
-		logOutput += "<body>\n"
-		logOutput += "<h1><a href='index.html'>Back</a></h1>\n"
+			header += "<style>\n"
+			header += loadFile('/usr/share/project-report/configs/style.css')
+			header += "\n</style>\n"
+		header += "<script>\n"
+		header += "function toggle(elementId){\n"
+		header += "	if (document.getElementById(elementId).style.display == 'block'){\n"
+		header += "		document.getElementById(elementId).style.display = 'none';\n"
+		header += "	}else if (document.getElementById(elementId).style.display == 'none'){\n"
+		header += "		document.getElementById(elementId).style.display = 'block';\n"
+		header += "	}\n"
+		header += "}\n"
+		header += "</script>\n"
+		header += "</head>\n"
+		header += "<body>\n"
+		header += "<h1><a href='../index.html'>Back</a></h1>\n"
 		# pull all git commit identifiers
 		tempCommits = runCmd('git log --oneline').split('\n')
 		commits = list()
@@ -636,7 +638,18 @@ class main():
 			if len(commit) > 2:
 				# grab the commit identifer by grabing the first value split by spaces
 				commits.append(commit.split(' '))
+		commitCounter = 1
+		commitPage = 1
+		# figure out how many pages there will be of commits
+		pages = int(ceil(len(commits) / 10))
+		# generate the page links section
+		pageLinks = "<div>\n"
+		for page in range(pages):
+			page += 1
+			pageLinks += "<a href='log"+str(page)+".html'>"+str(page)+"</a>\n"
+		pageLinks += "</div>\n"
 		# for each commit generate the html log and diff
+		logOutput = ""
 		for commit in commits:
 			# pull the commit message
 			commitMessage = (' '.join(commit[1:]))
@@ -671,9 +684,27 @@ class main():
 			logOutput += "Close Diff\n"
 			logOutput += "</a>\n"
 			logOutput += '</div>\n'
-		logOutput += "</body>\n"
-		logOutput += "</html>\n"
-		saveFile('report/log.html', logOutput)
+			# update the commit counter
+			commitCounter += 1
+			# update the counter
+			if commitCounter > 10:
+				# add the bottom of the page content
+				logOutput += pageLinks
+				logOutput += "</body>\n"
+				logOutput += "</html>\n"
+				# add the header
+				logOutput = header + pageLinks + logOutput
+				# save the file
+				saveFile('report/log/log'+str(commitPage)+'.html', logOutput)
+				if commitPage == 1:
+					# save the first page as the main log page
+					saveFile('report/log/log.html', logOutput)
+				# clear log output
+				logOutput = ""
+				# reset the commit counter
+				commitCounter = 1
+				# increment the page count
+				commitPage += 1
 	#######################################################################
 	def gitStats(self):
 		'''
