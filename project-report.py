@@ -639,9 +639,10 @@ class main():
 				# grab the commit identifer by grabing the first value split by spaces
 				commits.append(commit.split(' '))
 		commitCounter = 1
+		commitCountdown = len(commits)
 		commitPage = 1
 		# figure out how many pages there will be of commits
-		pages = int(ceil(len(commits) / 10))
+		pages = int(ceil(len(commits) / 10.0))
 		# generate the page links section
 		pageLinks = "<div>\n"
 		for page in range(pages):
@@ -651,6 +652,8 @@ class main():
 		# for each commit generate the html log and diff
 		logOutput = ""
 		for commit in commits:
+			# increment the total commit counter
+			commitCountdown -= 1
 			# pull the commit message
 			commitMessage = (' '.join(commit[1:]))
 			# start building the commit specific html
@@ -687,7 +690,7 @@ class main():
 			# update the commit counter
 			commitCounter += 1
 			# update the counter
-			if commitCounter > 10:
+			if commitCounter > 10 or commitCountdown == 0:
 				# add the bottom of the page content
 				logOutput += pageLinks
 				logOutput += "</body>\n"
