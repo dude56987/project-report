@@ -18,7 +18,7 @@
 show:
 	echo 'Run "make install" as root to install program!'
 test: install
-	time project-report
+	time project-report --debug
 run:
 	python project-report.py
 install: build
@@ -27,7 +27,7 @@ uninstall:
 	sudo apt-get purge project-report
 installed-size:
 	du -sx --exclude DEBIAN ./debian/
-build: 
+build:
 	sudo make build-deb;
 build-deb:
 	mkdir -p debian;
@@ -42,7 +42,7 @@ build-deb:
 	cp -vrf lib/* debian/usr/share/project-report/
 	# copy over the configs
 	cp -vrf configs/* debian/usr/share/project-report/configs/
-	# copy over the files 
+	# copy over the files
 	cp -vf project-report.py ./debian/usr/bin/project-report
 	# make the program executable
 	chmod +x ./debian/usr/bin/project-report
@@ -53,7 +53,7 @@ build-deb:
 	sed -i.bak 's/\\n*DEBIAN*\\n//g' ./debian/DEBIAN/md5sums
 	sed -i.bak 's/\\n*DEBIAN*//g' ./debian/DEBIAN/md5sums
 	rm -v ./debian/DEBIAN/md5sums.bak
-	# figure out the package size	
+	# figure out the package size
 	du -sx --exclude DEBIAN ./debian/ > Installed-Size.txt
 	# copy over package data
 	cp -rv debdata/. debian/DEBIAN/
