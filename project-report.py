@@ -355,6 +355,7 @@ class main():
 			reportIndex += "<h1 style='text-align: center'>\n"
 			reportIndex += projectTitle
 			reportIndex += "</h1>\n"
+			reportIndex += "<div id='date'>Created on "+runCmd('date')+"</div>\n"
 		# add the menu items
 		reportIndex += "<div id='menu'>\n"
 		if pathExists(pathJoin(projectDirectory,'report','webstats','index.html')):
