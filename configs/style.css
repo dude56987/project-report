@@ -4,6 +4,15 @@ body{
 	background-color: white;
 	color: black;
 }
+#traceAndSourceButtons{
+	height: 15px;
+}
+#downloadButton{
+	float: right;
+}
+#traceReportButton{
+	float: left;
+}
 #date{
 	text-align: center;
 }

@@ -15,15 +15,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-########################################################################
+#########################################################################
+# INDEX
+# - runCmd()
+# - findSources()
+# - cProfile()
+# - main()
+#   - buildIndex()
+#   - trace()
+#   - pylint()
+#   - pydocs()
+#   - gitlog()
+#   - gitstats()
+#   - gource()
+#######################################################################
 # TODO
 ########################################################################
 # - create argument for defining the location of the project logo
 # - create a system for running lint checkers aginst any code found
 #   - bash
 #   - python
-# - create a way to define the directory the git repository is located
-#   in
 # - build spell checker for comment lines
 ########################################################################
 import sys
@@ -285,6 +296,8 @@ class main():
 		if not noDelete:
 			if pathExists('report/'):
 				runCmd("rm -vr report/")
+		# create a source backup of the project
+		runCmd("7z a -mx=9 source.7z ./")
 		# create the directories that the report will be stored in
 		runCmd("mkdir -p report")
 		runCmd("mkdir -p report/webstats")
@@ -334,7 +347,7 @@ class main():
 		'''
 		# grab the project title from the readme
 		if pathExists(pathJoin(projectDirectory,'README.md')):
-			projectTitle = loadFile(pathJoin(projectDirectory,'README.md')).split('===')[0]
+			projectTitle = loadFile(pathJoin(projectDirectory,'README.md')).split('===')[0].strip()
 		else:
 			projectTitle = False
 		# create the index page to be saved to report/index.html
@@ -403,7 +416,19 @@ class main():
 				reportIndex += "<span>Code Quality : "+str(int(tempQuality))+"%</span>\n"
 				reportIndex += "</div>\n"
 		if pathExists(pathJoin(projectDirectory,'report','trace','index.html')):
-			reportIndex += "<a class='menuButton' style='float:right' href='trace/index.html'>trace</a>\n"
+			reportIndex += "<div id='traceAndSourceButtons'>\n"
+			reportIndex += "<a id='traceReportButton' class='menuButton' href='trace/index.html'>Trace Report</a>\n"
+		if projectTitle:
+			projectTitle=projectTitle.replace(' ','_')
+			runCmd('mv source.7z report/'+projectTitle+'.7z')
+			reportIndex += "<a id='downloadButton' class='button' href='"+projectTitle+".7z'>Download Source Code</a>\n"
+		else:
+			projectTitle='source'
+			runCmd('mv source.7z report/'+projectTitle+'.7z')
+			reportIndex += "<a id='downloadButton' class='button' href='"+projectTitle+".7z'>Download Source Code</a>\n"
+		if pathExists(pathJoin(projectDirectory,'report','trace','index.html')):
+			reportIndex += '</div>\n'
+		reportIndex += "<div>\n"
 		# generate the markdown of the README.md file and insert it, if it exists
 		if pathExists(pathJoin(projectDirectory,'README.md')):
 			reportIndex += "<div id='markdownArea'>\n"
